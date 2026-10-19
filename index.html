@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Our Cozy Theater 💕</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS for WebRTC Video Call, Local Stream & Sync Data -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- HLS.js for .m3u8 stream support -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0d0718;
+      background-image: 
+        radial-gradient(circle at 12% 18%, rgba(236, 72, 153, 0.14) 0%, transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(168, 85, 247, 0.14) 0%, transparent 42%);
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .glass-pink {
+      background: rgba(236, 72, 153, 0.14);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+    }
+    video { object-fit: cover; }
+    #directVideoPlayer { object-fit: contain; background: #000; }
+    
+    /* Custom Scrollbar for horizontal pills */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Floating Reaction Animation */
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(0.8); opacity: 1; }
+      50% { transform: translateY(-130px) scale(1.25); opacity: 0.95; }
+      100% { transform: translateY(-260px) scale(0.9); opacity: 0; }
+    }
+    .floating-emoji {
+      position: fixed;
+      bottom: 160px;
+      z-index: 60;
+      pointer-events: none;
+      animation: floatUp 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-5xl mx-auto">
+
+  <!-- Toast Notification Box (Replaces alert) -->
+  <div id="toastBox" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 w-[92%] max-w-md">
+    <div class="glass-pink text-pink-100 px-4 py-2.5 rounded-2xl shadow-2xl text-xs sm:text-sm font-medium flex items-center justify-center gap-2 border border-pink-400/50 text-center">
+      <span id="toastIcon" class="text-base">💕</span>
+      <span id="toastText">Message</span>
+    </div>
+  </div>
+
+  <!-- MOBILE LIVE SCREEN CAST HELPER MODAL -->
+  <div id="mobileCastModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-3">
+    <div class="glass border border-pink-500/40 rounded-3xl max-w-lg w-full p-4 sm:p-5 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📲</span>
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-pink-300">Mobile Live Screen & Movie Cast</h2>
+            <p class="text-[11px] text-gray-300">Android Chrome web tab se direct phone screen capture allow nahi karta—use any of these 3 instant methods:</p>
+          </div>
+        </div>
+        <button onclick="closeMobileCastModal()" class="text-gray-400 hover:text-white text-lg px-2">✕</button>
+      </div>
+
+      <!-- Option A: Stream Downloaded Movie File -->
+      <div class="bg-indigo-950/50 border border-indigo-400/30 rounded-2xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-indigo-300">Option 1: Stream Downloaded Movie (100% Live + Audio)</span>
+          <span class="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full">Recommended</span>
+        </div>
+        <p class="text-[11px] text-gray-300 leading-relaxed">
+          MovieBox ya browser se movie apne phone mein download karein aur neeche button se select karein—woh movie aapke phone se seedha Wifey ki screen par live stream hogi!
+        </p>
+        <label class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl cursor-pointer shadow active:scale-95 transition">
+          <span>📁 Select Phone Video to Stream Live</span>
+          <input type="file" accept="video/*" class="hidden" onchange="closeMobileCastModal(); streamLocalFile(event)">
+        </label>
+      </div>
+
+      <!-- Option B: Float Wifey Camera over MovieBox App -->
+      <div class="bg-emerald-950/50 border border-emerald-400/30 rounded-2xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-emerald-300">Option 2: Float Wifey Cam over MovieBox App (PiP)</span>
+          <span class="text-[10px] bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-full">Zero Lag</span>
+        </div>
+        <p class="text-[11px] text-gray-300 leading-relaxed">
+          Wifey ke live camera ko chote floating box (Picture-in-Picture) mein pop-out karein. Phir aap MovieBox ya koi bhi app kholein, Wifey ka live chehra aur aawaz aapki screen ke upar chalti rahegi!
+        </p>
+        <button onclick="closeMobileCastModal(); enableFloatingCamPiP();" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow active:scale-95 transition">
+          🖼️ Pop-Out Wifey Camera Now
+        </button>
+      </div>
+
+      <!-- Option C: Native Android Studio APK Wrapper Code -->
+      <div class="bg-purple-950/50 border border-purple-400/30 rounded-2xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-purple-300">Option 3: Build Native Android APK for Full Screen Cast</span>
+          <button onclick="copyKotlinCode()" class="text-[11px] bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded-lg font-medium">📋 Copy Kotlin Code</button>
+        </div>
+        <p class="text-[11px] text-gray-300">
+          Apne Netlify URL ko Android Studio WebView mein daal kar permissions grant karein:
+        </p>
+        <pre id="kotlinSnippet" class="bg-black/70 text-[10px] text-pink-200 p-2.5 rounded-xl overflow-x-auto font-mono leading-tight">webView.settings.apply {
+    javaScriptEnabled = true
+    domStorageEnabled = true
+    mediaPlaybackRequiresUserGesture = false
+}
+webView.webChromeClient = object : WebChromeClient() {
+    override fun onPermissionRequest(request: PermissionRequest) {
+        runOnUiThread { request.grant(request.resources) }
+    }
+}
+webView.loadUrl("YOUR_NETLIFY_HTTPS_URL")</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP SECTION: Header + Controls -->
+  <div class="space-y-2">
+    
+    <!-- 1. Room Connection Header Bar -->
+    <header class="glass rounded-2xl p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+      <div class="flex items-center gap-2">
+        <span class="text-xl sm:text-2xl">🍿💕</span>
+        <div>
+          <h1 class="font-bold text-pink-400 text-sm sm:text-base leading-tight">Our Cozy Theater</h1>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span id="statusDot" class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+            <span id="statusBadge" class="text-[11px] text-pink-200/90">Enter Room Code to Connect</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Room Code Input + Host / Join Buttons -->
+      <div class="flex items-center gap-1.5 w-full sm:w-auto">
+        <input id="roomInput" type="text" value="jaanu" placeholder="Room Code (e.g. jaanu)" 
+          class="bg-black/50 border border-pink-500/40 rounded-xl px-3 py-1.5 text-xs text-white w-28 sm:w-36 focus:outline-none focus:border-pink-400">
+        <button onclick="startRoom(true)" class="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-xs font-semibold px-3 py-1.5 rounded-xl shadow active:scale-95 transition whitespace-nowrap">
+          Host (Asad)
+        </button>
+        <button onclick="startRoom(false)" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-semibold px-3 py-1.5 rounded-xl shadow active:scale-95 transition whitespace-nowrap">
+          Join (Wifey 💕)
+        </button>
+        <button onclick="forceSyncNow()" title="Sync Current Timeline" class="bg-white/10 hover:bg-white/20 text-xs p-1.5 rounded-xl border border-white/15 active:scale-95 transition">
+          🔄
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. Universal URL / Weblink + Presets Bar -->
+    <div class="glass rounded-2xl p-2.5 space-y-2 shadow-lg">
+      <!-- URL Input Row -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <div class="relative flex-1 min-w-[190px]">
+          <input id="universalUrlInput" type="text" 
+            placeholder="Paste Link: YouTube, Google Drive, Ok.ru, .mp4, .m3u8, or Any Movie Site..." 
+            class="w-full bg-black/50 border border-white/15 rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-pink-400">
+          <button onclick="document.getElementById('universalUrlInput').value=''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs">✕</button>
+        </div>
+        
+        <button onclick="handleUniversalUrl('auto')" class="bg-pink-600 hover:bg-pink-500 text-xs font-semibold px-3.5 py-2 rounded-xl shadow active:scale-95 transition flex items-center gap-1">
+          <span>▶️</span> Smart Play
+        </button>
+        <button onclick="launchSyncedExternal()" title="Opens site on BOTH phones + Floats Wifey Camera!" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-xs font-semibold px-3 py-2 rounded-xl shadow active:scale-95 transition">
+          🚀 Unblocked Popup
+        </button>
+      </div>
+
+      <!-- Quick Date Presets & Streaming Buttons Row -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+        <button onclick="loadPresetYouTube('JuG0p5OW3hE', '🎬 Ok Jaanu (Full Movie)')" 
+          class="bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 text-rose-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap active:scale-95 transition">
+          🎬 Ok Jaanu (Movie)
+        </button>
+        <button onclick="loadPresetYouTube('sXoCRkfVRXA', '🎵 The Humma Song (1:27:52)')" 
+          class="bg-pink-500/25 hover:bg-pink-500/40 border border-pink-400/40 text-pink-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap active:scale-95 transition">
+          🎵 Humma Song (1:27:52)
+        </button>
+        <button onclick="loadPresetYouTube('IZF-rOe9u-g', '🎵 Enna Sona (4K)')" 
+          class="bg-purple-500/25 hover:bg-purple-500/40 border border-purple-400/40 text-purple-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap active:scale-95 transition">
+          🎵 Enna Sona
+        </button>
+        
+        <!-- Live Screen / App Cast Button -->
+        <button onclick="startScreenCast()" 
+          class="bg-cyan-500/25 hover:bg-cyan-500/40 border border-cyan-400/40 text-cyan-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap active:scale-95 transition">
+          📲 Live Cast Screen
+        </button>
+
+        <!-- Stream Phone Video File -->
+        <label class="bg-indigo-500/25 hover:bg-indigo-500/40 border border-indigo-400/40 text-indigo-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap cursor-pointer active:scale-95 transition">
+          📁 Stream Phone Video
+          <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="streamLocalFile(event)">
+        </label>
+
+        <!-- Floating Camera PiP Mode -->
+        <button onclick="enableFloatingCamPiP()" 
+          class="bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/40 text-emerald-200 text-[11px] font-semibold px-2.5 py-1.5 rounded-xl whitespace-nowrap active:scale-95 transition">
+          🖼️ Float Wifey Cam (Over Any App)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MAIN THEATER STAGE -->
+  <div class="my-2 space-y-1.5">
+    
+    <!-- Instant YouTube Engine Switcher Bar (100% Solves Error 153 & Embed Blocks) -->
+    <div id="ytEngineBar" class="flex flex-wrap items-center justify-between gap-1.5 px-2 py-1 rounded-xl bg-white/5 border border-white/10 text-[11px]">
+      <div class="flex items-center gap-1.5">
+        <span id="modeIndicator" class="font-semibold text-pink-300">🎬 Ok Jaanu (Full Movie)</span>
+      </div>
+      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <span class="text-gray-400 text-[10px] mr-0.5">Player Engine:</span>
+        <button onclick="switchYtEngine(1)" id="engBtn1" class="bg-pink-600 text-white px-2 py-0.5 rounded-lg font-medium text-[10px] transition">
+          ⚡ Engine 1 (Clean No-Error)
+        </button>
+        <button onclick="switchYtEngine(2)" id="engBtn2" class="bg-white/10 hover:bg-white/20 text-gray-200 px-2 py-0.5 rounded-lg font-medium text-[10px] transition">
+          🔄 Engine 2 (Auto-Sync API)
+        </button>
+        <button onclick="switchYtEngine(3)" id="engBtn3" class="bg-white/10 hover:bg-white/20 text-gray-200 px-2 py-0.5 rounded-lg font-medium text-[10px] transition">
+          🛡️ Engine 3 (Mirror Bypass)
+        </button>
+      </div>
+    </div>
+
+    <!-- Video Stage Box -->
+    <main class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-pink-500/30 flex items-center justify-center">
+      
+      <!-- Mode A1: Clean Direct YouTube No-Cookie Embed (Default - Never Triggers Error 153!) -->
+      <iframe id="ytCleanFrame" class="w-full h-full border-0"
+        src="https://www.youtube-nocookie.com/embed/JuG0p5OW3hE?playsinline=1&rel=0&modestbranding=1"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen></iframe>
+
+      <!-- Mode A2: Interactive YT.Player API Container (NO origin parameter passed!) -->
+      <div id="ytApiContainer" class="w-full h-full hidden">
+        <div id="ytPlayer"></div>
+      </div>
+
+      <!-- Mode B: Direct Video / Local Phone Video File / Live WebRTC Screen Cast Player -->
+      <video id="directVideoPlayer" class="w-full h-full hidden" controls playsinline></video>
+
+      <!-- Mobile Autoplay & Incoming Live Stream Unmute Overlay -->
+      <div id="streamUnmuteOverlay" class="hidden absolute inset-0 z-30 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+        <span class="text-4xl mb-2 animate-bounce">🍿📡</span>
+        <h3 class="text-sm sm:text-base font-bold text-pink-300 mb-1">Live Movie / Screen Stream Ready!</h3>
+        <p class="text-xs text-gray-300 mb-3 max-w-xs">Tap below to enable audio & watch live stream from your partner:</p>
+        <button onclick="unlockIncomingStream()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-2xl shadow-xl animate-pulse">
+          🔊 Tap to Enable Audio & Play Stream 💕
+        </button>
+      </div>
+
+      <!-- Mode C: Universal Weblink / Website Browser Iframe -->
+      <div id="webFrameContainer" class="w-full h-full hidden flex flex-col bg-zinc-950">
+        <!-- Mini Browser Toolbar -->
+        <div class="bg-zinc-900/95 border-b border-white/10 px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+          <div class="flex items-center gap-1.5 truncate">
+            <span class="text-pink-400 font-semibold">🌐 Web:</span>
+            <span id="currentWebUrlLabel" class="text-gray-300 truncate max-w-[140px] sm:max-w-xs">https://...</span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick="toggleIframeSandbox()" id="sandboxBtn" class="bg-amber-600/40 border border-amber-400/40 text-amber-200 px-2 py-0.5 rounded-lg">
+              🔓 Player Unblocked
+            </button>
+            <button onclick="loadViaCorsProxy()" class="bg-indigo-600/50 hover:bg-indigo-600 text-indigo-100 px-2 py-0.5 rounded-lg">
+              ⚡ Proxy Bypass
+            </button>
+            <button onclick="launchSyncedExternal()" class="bg-pink-600 hover:bg-pink-500 text-white font-medium px-2 py-0.5 rounded-lg">
+              🚀 Open Both Phones
+            </button>
+          </div>
+        </div>
+        <!-- Shared Website Iframe -->
+        <iframe id="sharedWebFrame" class="w-full flex-1 border-0 bg-black" 
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
+          allowfullscreen></iframe>
+        <!-- Rescue Footer -->
+        <div class="bg-zinc-900/95 px-2.5 py-1 text-[10px] text-gray-300 flex flex-wrap justify-between items-center gap-1 border-t border-white/10">
+          <span>Site refused to connect? Click <b>"🚀 Open Both Phones"</b> + <b>"🖼️ Float Wifey Cam"</b>!</span>
+          <button onclick="enableFloatingCamPiP()" class="text-emerald-300 underline font-semibold">Float Camera Now</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Caring Reactions & Independent Audio Mixer -->
+  <div class="glass rounded-2xl px-3 py-2 mb-2 flex flex-wrap items-center justify-between gap-2">
+    <!-- Caring Period-Comfort Reactions -->
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <span class="text-[11px] text-pink-300/80 mr-1 hidden sm:inline">Pamper Wifey:</span>
+      <button onclick="sendReaction('❤️', 'I love you so much meri Jaanu! ❤️')" class="hover:scale-110 active:scale-95 transition text-sm sm:text-base bg-white/5 px-2 py-1 rounded-xl">❤️</button>
+      <button onclick="sendReaction('🤗', 'Tight Warm Hug for my Wifey! 🤗💕')" class="hover:scale-110 active:scale-95 transition text-sm sm:text-base bg-white/5 px-2 py-1 rounded-xl">🤗</button>
+      <button onclick="sendReaction('🍫', 'Dark Chocolate for your cramps & mood! 🍫')" class="hover:scale-110 active:scale-95 transition text-sm sm:text-base bg-white/5 px-2 py-1 rounded-xl">🍫</button>
+      <button onclick="sendReaction('😘', 'Soft Forehead Kiss! 😘')" class="hover:scale-110 active:scale-95 transition text-sm sm:text-base bg-white/5 px-2 py-1 rounded-xl">😘</button>
+      <button onclick="sendReaction('💧', 'Jaanu, thora sa paani ya warm tea pee lein 💕')" class="hover:scale-105 active:scale-95 transition text-[11px] bg-pink-500/20 border border-pink-400/30 text-pink-200 px-2.5 py-1 rounded-xl whitespace-nowrap">💧 Drink Water</button>
+      <button onclick="sendReaction('🛋️', 'Heating pad lagaya? Aaram se kambal mein lait jayein 💕')" class="hover:scale-105 active:scale-95 transition text-[11px] bg-purple-500/20 border border-purple-400/30 text-purple-200 px-2.5 py-1 rounded-xl whitespace-nowrap">🛋️ Heating Pad Check</button>
+    </div>
+
+    <!-- Volume Sliders -->
+    <div class="flex items-center gap-3 text-[11px] text-gray-300 ml-auto">
+      <label class="flex items-center gap-1">
+        <span>🎬 Movie</span>
+        <input type="range" min="0" max="100" value="90" oninput="setMovieVolume(this.value)" class="w-14 sm:w-20 accent-pink-500 cursor-pointer">
+      </label>
+      <label class="flex items-center gap-1">
+        <span>🗣️ Wifey</span>
+        <input type="range" min="0" max="100" value="100" oninput="setPartnerVolume(this.value)" class="w-14 sm:w-20 accent-purple-500 cursor-pointer">
+      </label>
+    </div>
+  </div>
+
+  <!-- 4. DUAL LIVE CAMERA BAR (Always Active at Bottom!) -->
+  <section class="grid grid-cols-2 gap-2.5 sm:gap-4 h-36 sm:h-48">
+    <!-- Partner's Live Camera -->
+    <div class="relative glass rounded-2xl overflow-hidden border border-pink-500/40 shadow-lg flex items-center justify-center bg-black/50">
+      <video id="remoteCam" class="w-full h-full" autoplay playsinline></video>
+      <div id="remotePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-center p-2 pointer-events-none">
+        <span class="text-2xl mb-1">👩‍❤️‍👨</span>
+        <span class="text-[11px] text-pink-200/70">Waiting for Wifey's live camera...</span>
+      </div>
+      <span class="absolute bottom-2 left-2 bg-black/75 backdrop-blur-md text-pink-300 text-[11px] font-medium px-2.5 py-0.5 rounded-lg border border-pink-500/30">
+        Wifey 💕
+      </span>
+      <!-- Pop-out PiP Button -->
+      <button onclick="enableFloatingCamPiP()" title="Float Wifey's camera over any app!" class="absolute top-2 right-2 bg-pink-600/85 hover:bg-pink-500 text-white px-2 py-1 rounded-xl text-[10px] font-semibold border border-white/20 shadow">
+        🖼️ Pop-Out Cam
+      </button>
+    </div>
+
+    <!-- Your Own Live Camera -->
+    <div class="relative glass rounded-2xl overflow-hidden border border-purple-500/40 shadow-lg bg-black/50">
+      <video id="localCam" class="w-full h-full transform scale-x-[-1]" autoplay muted playsinline></video>
+      <span class="absolute bottom-2 left-2 bg-black/75 backdrop-blur-md text-purple-300 text-[11px] font-medium px-2.5 py-0.5 rounded-lg border border-purple-500/30">
+        Me
+      </span>
+      
+      <!-- Camera & Mic Controls -->
+      <div class="absolute top-2 right-2 flex items-center gap-1.5">
+        <button onclick="toggleMic()" id="micBtn" class="bg-black/75 hover:bg-black text-white p-1.5 rounded-xl text-xs border border-white/15 transition">
+          🎤
+        </button>
+        <button onclick="toggleCam()" id="camBtn" class="bg-black/75 hover:bg-black text-white p-1.5 rounded-xl text-xs border border-white/15 transition">
+          📷
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // --- STATE VARIABLES ---
+    let peer = null;
+    let dataConn = null;
+    let localCamStream = null;
+    let currentMovieCall = null;
+    let ytPlayer = null;
+    let ytApiReady = false;
+    let hlsInstance = null;
+    let isSyncing = false;
+    let currentMode = 'YT'; // 'YT' | 'DIRECT_URL' | 'WEB_IFRAME' | 'LIVE_STREAM'
+    let currentYtEngine = 1; // 1 = Clean NoCookie Embed (Zero Error 153), 2 = YT.Player API, 3 = Mirror Bypass
+    let currentVideoId = 'JuG0p5OW3hE';
+    let currentMediaUrl = 'https://youtu.be/JuG0p5OW3hE';
+    let sandboxEnabled = false;
+
+    // Google & Cloudflare STUN servers for reliable Mobile-to-Mobile NAT traversal
+    const PEER_CONFIG = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun.cloudflare.com:3478' }
+        ]
+      }
+    };
+
+    const statusBadge = document.getElementById('statusBadge');
+    const statusDot = document.getElementById('statusDot');
+    const ytCleanFrame = document.getElementById('ytCleanFrame');
+    const ytApiContainer = document.getElementById('ytApiContainer');
+    const directVideoPlayer = document.getElementById('directVideoPlayer');
+    const webFrameContainer = document.getElementById('webFrameContainer');
+    const sharedWebFrame = document.getElementById('sharedWebFrame');
+    const modeIndicator = document.getElementById('modeIndicator');
+    const streamUnmuteOverlay = document.getElementById('streamUnmuteOverlay');
+
+    // --- TOAST NOTIFICATION HELPER ---
+    function showToast(message, icon = '💕') {
+      const box = document.getElementById('toastBox');
+      document.getElementById('toastText').innerText = message;
+      document.getElementById('toastIcon').innerText = icon;
+      box.classList.remove('hidden');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => box.classList.add('hidden'), 4300);
+    }
+
+    function openMobileCastModal() {
+      document.getElementById('mobileCastModal').classList.remove('hidden');
+    }
+    function closeMobileCastModal() {
+      document.getElementById('mobileCastModal').classList.add('hidden');
+    }
+
+    function copyKotlinCode() {
+      const code = document.getElementById('kotlinSnippet').innerText;
+      const temp = document.createElement('textarea');
+      temp.value = code;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      temp.remove();
+      showToast("Android Studio Kotlin WebView code copied!", "📋");
+    }
+
+    // --- 1. INITIALIZE CAMERA & MIC ---
+    async function initCamera() {
+      try {
+        localCamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        document.getElementById('localCam').srcObject = localCamStream;
+      } catch (err) {
+        showToast("Camera/Mic permission allow karein taake aap dono ek dusre ko dekh sakein!", "📷");
+      }
+    }
+    initCamera();
+
+    // --- 2. YOUTUBE API & 3-ENGINE SYSTEM (COMPLETELY FIXES ERROR 153) ---
+    // CRITICAL FIX: Never pass `origin` or `widget_referrer` inside playerVars!
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('ytPlayer', {
+        width: '100%',
+        height: '100%',
+        videoId: currentVideoId,
+        playerVars: {
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: () => { ytApiReady = true; },
+          onStateChange: onYtStateChange,
+          onError: () => {
+            // If Engine 2 ever hits an embed restriction, auto-switch to Engine 1 Clean Embed!
+            switchYtEngine(1, false);
+          }
+        }
+      });
+    }
+
+    function onYtStateChange(event) {
+      if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !dataConn || !dataConn.open) return;
+      const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+      if (event.data === YT.PlayerState.PLAYING) {
+        sendSyncData({ type: 'YT_STATE', action: 'PLAY', time });
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time });
+      }
+    }
+
+    function switchYtEngine(engineNum, broadcast = true) {
+      currentYtEngine = engineNum;
+      switchStageMode('YT', modeIndicator.innerText);
+
+      // Update active pill styling
+      [1, 2, 3].forEach(n => {
+        const btn = document.getElementById(`engBtn${n}`);
+        if (n === engineNum) {
+          btn.className = "bg-pink-600 text-white px-2 py-0.5 rounded-lg font-medium text-[10px] transition shadow";
+        } else {
+          btn.className = "bg-white/10 hover:bg-white/20 text-gray-200 px-2 py-0.5 rounded-lg font-medium text-[10px] transition";
+        }
+      });
+
+      if (engineNum === 1) {
+        // Engine 1: Clean youtube-nocookie iframe without origin parameter (Zero Error 153!)
+        ytApiContainer.classList.add('hidden');
+        ytCleanFrame.classList.remove('hidden');
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(e){} }
+        ytCleanFrame.src = `https://www.youtube-nocookie.com/embed/${currentVideoId}?playsinline=1&rel=0&modestbranding=1&autoplay=1`;
+      } 
+      else if (engineNum === 2) {
+        // Engine 2: Interactive YT.Player API Sync
+        ytCleanFrame.src = 'about:blank';
+        ytCleanFrame.classList.add('hidden');
+        ytApiContainer.classList.remove('hidden');
+        if (ytApiReady && ytPlayer && ytPlayer.loadVideoById) {
+          ytPlayer.loadVideoById(currentVideoId);
+        }
+      } 
+      else if (engineNum === 3) {
+        // Engine 3: Invidious / Piped Privacy Mirror Embed Bypass
+        ytApiContainer.classList.add('hidden');
+        ytCleanFrame.classList.remove('hidden');
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(e){} }
+        ytCleanFrame.src = `https://inv.tux.pizza/embed/${currentVideoId}?autoplay=1`;
+      }
+
+      if (broadcast) {
+        sendSyncData({ type: 'SWITCH_YT_ENGINE', engine: engineNum, videoId: currentVideoId });
+      }
+    }
+
+    function loadYouTubeVideoEverywhere(videoId, titleText = '🎬 YouTube Movie Mode', broadcast = true) {
+      currentVideoId = videoId;
+      switchStageMode('YT', titleText);
+
+      if (currentYtEngine === 1) {
+        ytCleanFrame.src = `https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1&autoplay=1`;
+      } else if (currentYtEngine === 2 && ytApiReady && ytPlayer && ytPlayer.loadVideoById) {
+        ytPlayer.loadVideoById(videoId);
+      } else if (currentYtEngine === 3) {
+        ytCleanFrame.src = `https://inv.tux.pizza/embed/${videoId}?autoplay=1`;
+      }
+
+      if (broadcast) {
+        sendSyncData({ type: 'OPEN_UNIVERSAL', url: videoId, forceType: 'yt', title: titleText });
+      }
+    }
+
+    // --- 3. STAGE VIEW CONTROLLER ---
+    function switchStageMode(mode, labelText) {
+      currentMode = mode;
+      ytCleanFrame.classList.add('hidden');
+      ytApiContainer.classList.add('hidden');
+      directVideoPlayer.classList.add('hidden');
+      webFrameContainer.classList.add('hidden');
+      streamUnmuteOverlay.classList.add('hidden');
+
+      if (mode !== 'YT') {
+        ytCleanFrame.src = 'about:blank';
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(e) {} }
+      }
+      if (mode !== 'DIRECT_URL' && mode !== 'LIVE_STREAM') {
+        directVideoPlayer.pause();
+      }
+      if (mode !== 'WEB_IFRAME') {
+        sharedWebFrame.src = 'about:blank';
+      }
+
+      if (mode === 'YT') {
+        if (currentYtEngine === 2) {
+          ytApiContainer.classList.remove('hidden');
+        } else {
+          ytCleanFrame.classList.remove('hidden');
+        }
+      } else if (mode === 'DIRECT_URL' || mode === 'LIVE_STREAM') {
+        directVideoPlayer.classList.remove('hidden');
+      } else if (mode === 'WEB_IFRAME') {
+        webFrameContainer.classList.remove('hidden');
+      }
+
+      if (labelText) modeIndicator.innerText = labelText;
+    }
+
+    // --- 4. UNIVERSAL WEBLINK & STREAM PLAYER ---
+    function extractYouTubeId(url) {
+      const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(\/shorts\/)|(\/live\/))\??v?=?([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[9] && match[9].length === 11) ? match[9] : null;
+    }
+
+    function convertSpecialEmbedUrls(url) {
+      // Google Drive (/file/d/ID/view -> /file/d/ID/preview)
+      if (url.includes('drive.google.com/file/d/')) {
+        return url.replace(/\/(view|edit).*$/, '/preview');
+      }
+      // Dailymotion
+      if (url.includes('dailymotion.com/video/')) {
+        const dmId = url.split('dailymotion.com/video/')[1].split(/[?&/]/)[0];
+        return `https://www.dailymotion.com/embed/video/${dmId}?autoplay=1`;
+      }
+      // Vimeo
+      if (url.includes('vimeo.com/') && !url.includes('player.vimeo.com')) {
+        const vimeoId = url.split('vimeo.com/')[1].split(/[?&/]/)[0];
+        if (/^\d+$/.test(vimeoId)) return `https://player.vimeo.com/video/${vimeoId}`;
+      }
+      // OK.ru (Popular for uncut full Hindi movies)
+      if (url.includes('ok.ru/video/')) {
+        const okId = url.split('ok.ru/video/')[1].split(/[?&/]/)[0];
+        return `https://ok.ru/videoembed/${okId}`;
+      }
+      // Archive.org
+      if (url.includes('archive.org/details/')) {
+        return url.replace('archive.org/details/', 'archive.org/embed/');
+      }
+      return url;
+    }
+
+    function handleUniversalUrl(forceType = 'auto', incomingUrl = null, broadcast = true) {
+      let rawUrl = incomingUrl || document.getElementById('universalUrlInput').value.trim();
+      if (!rawUrl) {
+        showToast("Pehle upar box mein YouTube, Google Drive, Ok.ru ya Video link paste karein!", "🔗");
+        return;
+      }
+
+      // Check if 11-char YouTube ID or full YouTube URL
+      const ytId = extractYouTubeId(rawUrl) || (/^[a-zA-Z0-9_-]{11}$/.test(rawUrl) ? rawUrl : null);
+      if (ytId && forceType !== 'web') {
+        loadYouTubeVideoEverywhere(ytId, '🎬 YouTube Movie Mode', broadcast);
+        if (broadcast) showToast("YouTube video dono phones par load ho gayi! 💕", "🎬");
+        return;
+      }
+
+      if (!/^https?:\/\//i.test(rawUrl) && rawUrl.includes('.')) {
+        rawUrl = 'https://' + rawUrl;
+      }
+      currentMediaUrl = rawUrl;
+
+      // Direct Video (.mp4, .m3u8, .webm, .mkv)
+      const isDirectVideo = /\.(mp4|webm|ogg|m3u8|mov|mkv)(\?.*)?$/i.test(rawUrl);
+      if (isDirectVideo && forceType !== 'web') {
+        loadDirectVideoStream(rawUrl, broadcast);
+        return;
+      }
+
+      // Universal Web Embed
+      const embedUrl = convertSpecialEmbedUrls(rawUrl);
+      switchStageMode('WEB_IFRAME', '🌐 Shared Weblink Player');
+      document.getElementById('currentWebUrlLabel').innerText = embedUrl;
+      sharedWebFrame.removeAttribute('sandbox');
+      sharedWebFrame.src = embedUrl;
+
+      if (broadcast) {
+        sendSyncData({ type: 'OPEN_UNIVERSAL', url: embedUrl, forceType: 'web' });
+        showToast("Weblink dono phones par khul gaya!", "🌐");
+      }
+    }
+
+    function loadPresetYouTube(videoId, title) {
+      document.getElementById('universalUrlInput').value = `https://youtu.be/${videoId}`;
+      loadYouTubeVideoEverywhere(videoId, title, true);
+      showToast(`Playing: ${title}`, '🍿');
+    }
+
+    // --- 5. LIVE SCREEN CAST & LOCAL PHONE VIDEO STREAMING ---
+    async function startScreenCast() {
+      // Check if browser supports getDisplayMedia (PC/Laptop or custom Android WebView)
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+        openMobileCastModal();
+        return;
+      }
+
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: "always" },
+          audio: true
+        });
+
+        switchStageMode('LIVE_STREAM', '📲 Live Screen Cast Active');
+        directVideoPlayer.src = '';
+        directVideoPlayer.srcObject = screenStream;
+        directVideoPlayer.muted = true; // Mute locally on sender to prevent echo
+        await directVideoPlayer.play();
+
+        if (peer && dataConn && dataConn.open) {
+          if (currentMovieCall) currentMovieCall.close();
+          currentMovieCall = peer.call(dataConn.peer, screenStream, { metadata: { streamType: 'movie' } });
+          sendSyncData({ type: 'INCOMING_STREAM_ALERT', title: '📲 Partner Live Screen Cast' });
+          showToast("Aapki Live Screen + Audio Wifey ke phone par cast ho rahi hai! 💕", "📲");
+        } else {
+          showToast("Screen Cast shuru ho gaya! Wifey ko dikhane ke liye pehle Room Connect karein.", "ℹ️");
+        }
+
+        screenStream.getVideoTracks()[0].onended = () => {
+          loadYouTubeVideoEverywhere(currentVideoId, '🎬 YouTube Movie Mode', true);
+          showToast("Live Screen Cast ended.", "ℹ️");
+        };
+      } catch (err) {
+        // On Android Chrome, getDisplayMedia throws NotAllowedError / NotSupportedError -> Open Helper Modal!
+        openMobileCastModal();
+      }
+    }
+
+    function streamLocalFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      switchStageMode('LIVE_STREAM', `📁 Streaming: ${file.name}`);
+      const fileURL = URL.createObjectURL(file);
+      directVideoPlayer.srcObject = null;
+      directVideoPlayer.src = fileURL;
+      directVideoPlayer.muted = false;
+
+      const broadcastFileStream = () => {
+        try {
+          const stream = directVideoPlayer.captureStream ? directVideoPlayer.captureStream(30) : 
+                         (directVideoPlayer.mozCaptureStream ? directVideoPlayer.mozCaptureStream(30) : null);
+          if (!stream) {
+            showToast("Browser captureStream support nahi karta—Google Drive mein daal kar link paste karein!", "⚠️");
+            return;
+          }
+          if (peer && dataConn && dataConn.open) {
+            if (currentMovieCall) currentMovieCall.close();
+            currentMovieCall = peer.call(dataConn.peer, stream, { metadata: { streamType: 'movie' } });
+            sendSyncData({ type: 'INCOMING_STREAM_ALERT', title: `📁 ${file.name}` });
+            showToast("Phone Video Wifey ki screen par live stream ho rahi hai! 💕", "📡");
+          } else {
+            showToast("Video chal pari! Wifey ko stream karne ke liye pehle Room Connect karein.", "ℹ️");
+          }
+        } catch (e) {
+          showToast("Video par Play ▶️ dabayein taake stream shuru ho!", "▶️");
+        }
+      };
+
+      directVideoPlayer.onloadeddata = () => {
+        directVideoPlayer.play().then(broadcastFileStream).catch(() => {
+          showToast("Video par Play ▶️ button dabayein!", "🍿");
+        });
+      };
+    }
+
+    function unlockIncomingStream() {
+      streamUnmuteOverlay.classList.add('hidden');
+      directVideoPlayer.muted = false;
+      directVideoPlayer.play().catch(() => {});
+      showToast("Live Stream Audio & Video Enabled! Enjoy together 💕", "🔊");
+    }
+
+    // --- 6. FLOATING CAMERA PiP & SYNCED POPUP ---
+    async function enableFloatingCamPiP(silent = false) {
+      const remoteVideo = document.getElementById('remoteCam');
+      const localVideo = document.getElementById('localCam');
+      const targetVideo = (remoteVideo.srcObject && remoteVideo.readyState >= 2) ? remoteVideo : localVideo;
+
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        }
+        if (targetVideo.requestPictureInPicture) {
+          await targetVideo.requestPictureInPicture();
+          if (!silent) showToast("Wifey Camera Floating ON! Ab aap MovieBox ya koi bhi app kholein, camera upar rahega 💕", "🖼️");
+        } else if (targetVideo.webkitSetPresentationMode) {
+          targetVideo.webkitSetPresentationMode('picture-in-picture');
+        } else {
+          if (!silent) showToast("Pehle Room Connect karein taake camera float ho sake!", "💕");
+        }
+      } catch (err) {
+        if (!silent) showToast("Camera video par ek baar tap karein aur phir Pop-Out dabayein!", "ℹ️");
+      }
+    }
+
+    async function launchSyncedExternal(incomingUrl = null, broadcast = true) {
+      let targetUrl = incomingUrl || document.getElementById('universalUrlInput').value.trim() || currentMediaUrl;
+      if (!targetUrl) {
+        showToast("Pehle upar box mein link paste karein!", "🔗");
+        return;
+      }
+      if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+      await enableFloatingCamPiP(true);
+      if (broadcast) {
+        sendSyncData({ type: 'SYNC_EXTERNAL_POPUP', url: targetUrl });
+      }
+      window.open(targetUrl, '_blank');
+      showToast("Site new tab mein khul gayi aur Floating Camera active hai! 💕", "🚀");
+    }
+
+    async function loadViaCorsProxy() {
+      if (!currentMediaUrl) return;
+      showToast("Bypassing frame block via proxy...", "⚡");
+      try {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(currentMediaUrl)}`);
+        const data = await res.json();
+        if (data && data.contents) {
+          sharedWebFrame.srcdoc = `<base href="${currentMediaUrl}">` + data.contents;
+          showToast("Proxy loaded!", "✅");
+        }
+      } catch (e) {
+        showToast("Is site ke liye '🚀 Open Both Phones' button dabayein!", "🚀");
+      }
+    }
+
+    function toggleIframeSandbox() {
+      sandboxEnabled = !sandboxEnabled;
+      const btn = document.getElementById('sandboxBtn');
+      if (sandboxEnabled) {
+        sharedWebFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+        btn.innerText = '🛡️ Ad-Lock ON';
+        showToast("Ad-Lock ON: Popups blocked!", "🛡️");
+      } else {
+        sharedWebFrame.removeAttribute('sandbox');
+        btn.innerText = '🔓 Player Unblocked';
+        showToast("Player Unblocked Mode!", "🔓");
+      }
+      const src = sharedWebFrame.src;
+      sharedWebFrame.src = src;
+    }
+
+    // Load Direct Video (.mp4 / .m3u8)
+    function loadDirectVideoStream(url, broadcast = true) {
+      switchStageMode('DIRECT_URL', '🎞️ Direct Stream Sync');
+      directVideoPlayer.srcObject = null;
+
+      if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+      if (url.includes('.m3u8') && Hls.isSupported()) {
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(directVideoPlayer);
+      } else {
+        directVideoPlayer.src = url;
+      }
+
+      directVideoPlayer.onplay = () => {
+        if (!isSyncing && currentMode === 'DIRECT_URL') {
+          sendSyncData({ type: 'DIRECT_STATE', action: 'PLAY', time: directVideoPlayer.currentTime });
+        }
+      };
+      directVideoPlayer.onpause = () => {
+        if (!isSyncing && currentMode === 'DIRECT_URL') {
+          sendSyncData({ type: 'DIRECT_STATE', action: 'PAUSE', time: directVideoPlayer.currentTime });
+        }
+      };
+      directVideoPlayer.onseeked = () => {
+        if (!isSyncing && currentMode === 'DIRECT_URL') {
+          sendSyncData({ type: 'DIRECT_STATE', action: 'SEEK', time: directVideoPlayer.currentTime });
+        }
+      };
+
+      if (broadcast) {
+        sendSyncData({ type: 'OPEN_UNIVERSAL', url: url, forceType: 'direct' });
+      }
+    }
+
+    // --- 7. PEERJS WEBRTC CONNECTION ---
+    function startRoom(isHost) {
+      const code = document.getElementById('roomInput').value.trim().toLowerCase();
+      if (!code) {
+        showToast("Pehle Room Code likhiye (maslan: jaanu)", "💕");
+        return;
+      }
+
+      const hostPeerId = `cozy-theater-host-${code}`;
+      const myPeerId = isHost ? hostPeerId : `cozy-theater-guest-${code}-${Math.floor(Math.random() * 9000)}`;
+
+      if (peer) peer.destroy();
+      peer = new Peer(myPeerId, PEER_CONFIG);
+
+      statusBadge.innerText = "Connecting room...";
+      statusDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-ping";
+
+      peer.on('open', () => {
+        if (isHost) {
+          statusBadge.innerText = `Room "${code}" Ready! Waiting for Wifey 💕`;
+          showToast(`Room "${code}" ready! Ab Wifey ko 'Join (Wifey 💕)' dabane ka bolein.`, "✨");
+        } else {
+          dataConn = peer.connect(hostPeerId, { reliable: true });
+          setupDataEvents();
+
+          if (localCamStream) {
+            const camCall = peer.call(hostPeerId, localCamStream, { metadata: { streamType: 'camera' } });
+            camCall.on('stream', (remoteStream) => {
+              document.getElementById('remoteCam').srcObject = remoteStream;
+              document.getElementById('remotePlaceholder').classList.add('hidden');
+            });
+          }
+        }
+      });
+
+      peer.on('connection', (conn) => {
+        dataConn = conn;
+        setupDataEvents();
+        if (localCamStream) {
+          setTimeout(() => {
+            const backCall = peer.call(conn.peer, localCamStream, { metadata: { streamType: 'camera' } });
+            if (backCall) {
+              backCall.on('stream', (remoteStream) => {
+                document.getElementById('remoteCam').srcObject = remoteStream;
+                document.getElementById('remotePlaceholder').classList.add('hidden');
+              });
+            }
+          }, 700);
+        }
+      });
+
+      peer.on('call', (call) => {
+        const streamType = call.metadata?.streamType || 'camera';
+        if (streamType === 'camera') {
+          call.answer(localCamStream);
+          call.on('stream', (remoteStream) => {
+            document.getElementById('remoteCam').srcObject = remoteStream;
+            document.getElementById('remotePlaceholder').classList.add('hidden');
+          });
+        } else if (streamType === 'movie') {
+          call.answer();
+          call.on('stream', (movieStream) => {
+            switchStageMode('LIVE_STREAM', '📡 Partner Live Video / Screen Stream');
+            directVideoPlayer.src = '';
+            directVideoPlayer.srcObject = movieStream;
+            directVideoPlayer.muted = true;
+            directVideoPlayer.play().then(() => {
+              streamUnmuteOverlay.classList.remove('hidden');
+            }).catch(() => {
+              streamUnmuteOverlay.classList.remove('hidden');
+            });
+            showToast("Partner ki Live Stream aa gayi! '🔊 Tap to Enable Audio' dabayein 🍿", "📡");
+          });
+        }
+      });
+
+      peer.on('error', () => {
+        statusBadge.innerText = "Click Host first, then Join";
+        statusDot.className = "w-2 h-2 rounded-full bg-rose-500";
+        showToast("Pehle Asad 'Host' dabayein, phir Wifey 'Join' dabayein!", "ℹ️");
+      });
+    }
+
+    function sendSyncData(payload) {
+      if (dataConn && dataConn.open) {
+        dataConn.send(payload);
+      }
+    }
+
+    function setupDataEvents() {
+      dataConn.on('open', () => {
+        statusBadge.innerText = "Connected Together 💕";
+        statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        showToast("Connected with Wifey 💕! Ab aap dono saath hain.", "🎉");
+      });
+
+      dataConn.on('data', (data) => {
+        if (data.type === 'OPEN_UNIVERSAL') {
+          document.getElementById('universalUrlInput').value = data.url;
+          if (data.forceType === 'yt') {
+            loadYouTubeVideoEverywhere(data.url, data.title || '🎬 YouTube Sync', false);
+          } else {
+            handleUniversalUrl(data.forceType, data.url, false);
+          }
+        }
+        else if (data.type === 'SWITCH_YT_ENGINE') {
+          currentVideoId = data.videoId || currentVideoId;
+          switchYtEngine(data.engine, false);
+        }
+        else if (data.type === 'SYNC_EXTERNAL_POPUP') {
+          document.getElementById('universalUrlInput').value = data.url;
+          showToast("Partner ne external movie site open ki! '🚀 Unblocked Popup' dabayein", "🚀");
+        }
+        else if (data.type === 'INCOMING_STREAM_ALERT') {
+          switchStageMode('LIVE_STREAM', data.title || '📡 Incoming Stream');
+          streamUnmuteOverlay.classList.remove('hidden');
+        }
+        else if (data.type === 'YT_STATE') {
+          if (currentYtEngine !== 2) switchYtEngine(2, false);
+          isSyncing = true;
+          if (ytPlayer && ytPlayer.getCurrentTime && Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
+            ytPlayer.seekTo(data.time, true);
+          }
+          if (data.action === 'PLAY' && ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
+          if (data.action === 'PAUSE' && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+          setTimeout(() => { isSyncing = false; }, 650);
+        }
+        else if (data.type === 'DIRECT_STATE') {
+          isSyncing = true;
+          if (Math.abs(directVideoPlayer.currentTime - data.time) > 1.5) {
+            directVideoPlayer.currentTime = data.time;
+          }
+          if (data.action === 'PLAY') directVideoPlayer.play();
+          if (data.action === 'PAUSE') directVideoPlayer.pause();
+          setTimeout(() => { isSyncing = false; }, 650);
+        }
+        else if (data.type === 'REACTION') {
+          spawnFloatingEmoji(data.emoji);
+          showToast(data.text, data.emoji);
+        }
+      });
+    }
+
+    function forceSyncNow() {
+      if (!dataConn || !dataConn.open) {
+        showToast("Pehle Room Code daal kar connect kar lein!", "🔗");
+        return;
+      }
+      if (currentMode === 'YT') {
+        if (currentYtEngine === 2 && ytPlayer && ytPlayer.getCurrentTime) {
+          sendSyncData({ type: 'YT_STATE', action: 'PLAY', time: ytPlayer.getCurrentTime() });
+        } else {
+          sendSyncData({ type: 'OPEN_UNIVERSAL', url: currentVideoId, forceType: 'yt', title: modeIndicator.innerText });
+        }
+        showToast("YouTube synced with Wifey! 💕", "🔄");
+      } else if (currentMode === 'DIRECT_URL') {
+        sendSyncData({ type: 'DIRECT_STATE', action: 'PLAY', time: directVideoPlayer.currentTime });
+        showToast("Video timeline synced!", "🔄");
+      }
+    }
+
+    // --- 8. CARING REACTIONS & VOLUME CONTROLS ---
+    function sendReaction(emoji, text) {
+      spawnFloatingEmoji(emoji);
+      showToast(text, emoji);
+      sendSyncData({ type: 'REACTION', emoji, text });
+    }
+
+    function spawnFloatingEmoji(emoji) {
+      for (let i = 0; i < 4; i++) {
+        const el = document.createElement('div');
+        el.className = 'floating-emoji text-2xl sm:text-4xl';
+        el.innerText = emoji;
+        el.style.left = `${18 + Math.random() * 64}%`;
+        el.style.animationDelay = `${i * 0.14}s`;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3400);
+      }
+    }
+
+    function setMovieVolume(val) {
+      const v = Number(val);
+      if (ytPlayer && ytPlayer.setVolume) ytPlayer.setVolume(v);
+      directVideoPlayer.volume = v / 100;
+    }
+
+    function setPartnerVolume(val) {
+      const remoteVideo = document.getElementById('remoteCam');
+      remoteVideo.volume = Number(val) / 100;
+    }
+
+    function toggleMic() {
+      if (!localCamStream) return;
+      const track = localCamStream.getAudioTracks()[0];
+      if (!track) return;
+      track.enabled = !track.enabled;
+      document.getElementById('micBtn').innerText = track.enabled ? '🎤' : '🔇';
+      showToast(track.enabled ? "Mic Unmuted" : "Mic Muted", track.enabled ? "🎤" : "🔇");
+    }
+
+    function toggleCam() {
+      if (!localCamStream) return;
+      const track = localCamStream.getVideoTracks()[0];
+      if (!track) return;
+      track.enabled = !track.enabled;
+      document.getElementById('camBtn').innerText = track.enabled ? '📷' : '🚫';
+      showToast(track.enabled ? "Camera ON" : "Camera OFF", "📷");
+    }
+  </script>
+</body>
+</html>
