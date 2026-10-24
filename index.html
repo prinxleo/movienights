@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Our Cozy Theater 💕</title>
+  <title>Biya's Movie Night 💕</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- PeerJS for Cross-Platform WebRTC (PC <-> Android) -->
@@ -40,11 +40,9 @@
     video { object-fit: cover; }
     #directVideoPlayer { object-fit: contain; background: #000; }
     
-    /* Hide Scrollbars */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Floating Emoji Animation */
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.8); opacity: 1; }
       50% { transform: translateY(-130px) scale(1.25); opacity: 0.95; }
@@ -58,7 +56,6 @@
       animation: floatUp 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
-    /* Popup Chat Message Bubble Animation */
     @keyframes popIn {
       0% { transform: translateY(16px) scale(0.9); opacity: 0; }
       100% { transform: translateY(0) scale(1); opacity: 1; }
@@ -99,7 +96,7 @@
         <button onclick="closeMobileCastModal()" class="text-gray-400 hover:text-white text-lg px-2">✕</button>
       </div>
 
-      <!-- Mode 1: Enable True Android Chrome Native Screen Share in 10 Seconds -->
+      <!-- Mode 1 -->
       <div class="bg-cyan-950/50 border border-cyan-400/40 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-cyan-300">Mode 1: Enable Native Android Screen Cast (10 Sec Setup)</span>
@@ -120,7 +117,7 @@
         </div>
       </div>
 
-      <!-- Mode 2: Stream Downloaded Movie File Directly -->
+      <!-- Mode 2 -->
       <div class="bg-indigo-950/50 border border-indigo-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-indigo-300">Mode 2: Stream Any Video File From Phone (HD + Audio)</span>
@@ -135,7 +132,7 @@
         </label>
       </div>
 
-      <!-- Mode 3: Cast Phone Back/Front Camera or Float Partner Cam -->
+      <!-- Mode 3 -->
       <div class="bg-emerald-950/50 border border-emerald-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-emerald-300">Mode 3: Float Wifey Cam Over MovieBox / Cast Rear Cam</span>
@@ -175,16 +172,14 @@
     </div>
   </div>
 
-  <!-- TOP SECTION: Header + Controls -->
+  <!-- TOP SECTION -->
   <div class="space-y-2">
-    
-    <!-- 1. Cross-Platform Room Connection Header (PC <-> Android Ready) -->
     <header class="glass rounded-2xl p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
       <div class="flex items-center gap-2">
         <span class="text-xl sm:text-2xl">🍿💕</span>
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="font-bold text-pink-400 text-sm sm:text-base leading-tight">Our Cozy Theater</h1>
+            <h1 class="font-bold text-pink-400 text-sm sm:text-base leading-tight">Biya's Movie Night</h1>
             <span id="myDeviceBadge" class="text-[10px] bg-white/10 text-pink-200 px-2 py-0.5 rounded-full border border-white/10">Detecting...</span>
           </div>
           <div class="flex items-center gap-1.5 mt-0.5">
@@ -194,7 +189,6 @@
         </div>
       </div>
 
-      <!-- Room Code Input + Host / Join / Auto-Reconnect -->
       <div class="flex items-center gap-1.5 w-full sm:w-auto">
         <input id="roomInput" type="text" value="jaanu" placeholder="Room Code" 
           class="bg-black/50 border border-pink-500/40 rounded-xl px-2.5 py-1.5 text-xs text-white w-24 sm:w-32 focus:outline-none focus:border-pink-400">
@@ -210,9 +204,8 @@
       </div>
     </header>
 
-    <!-- 2. Universal URL / Weblink + Presets Bar -->
+    <!-- Universal URL Bar -->
     <div class="glass rounded-2xl p-2.5 space-y-2 shadow-lg">
-      <!-- URL Input Row -->
       <div class="flex flex-wrap items-center gap-1.5">
         <div class="relative flex-1 min-w-[180px]">
           <input id="universalUrlInput" type="text" 
@@ -229,7 +222,6 @@
         </button>
       </div>
 
-      <!-- Quick Date Presets & Live Cast Buttons Row -->
       <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
         <button onclick="loadPresetYouTube('JuG0p5OW3hE', '🎬 Ok Jaanu (Full Movie)')" 
           class="bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 text-rose-200 text-[11px] font-semibold px-2.5 py-1 rounded-xl whitespace-nowrap active:scale-95 transition">
@@ -244,19 +236,16 @@
           🎵 Enna Sona
         </button>
         
-        <!-- Live Screen / App Cast Button (Works on PC & Android) -->
         <button onclick="startScreenCast()" 
           class="bg-cyan-500/25 hover:bg-cyan-500/40 border border-cyan-400/40 text-cyan-200 text-[11px] font-semibold px-2.5 py-1 rounded-xl whitespace-nowrap active:scale-95 transition">
           📲 Live Cast Screen (PC / Android)
         </button>
 
-        <!-- Stream Phone Video File -->
         <label class="bg-indigo-500/25 hover:bg-indigo-500/40 border border-indigo-400/40 text-indigo-200 text-[11px] font-semibold px-2.5 py-1 rounded-xl whitespace-nowrap cursor-pointer active:scale-95 transition">
           📁 Stream Phone Video
           <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="streamLocalFile(event)">
         </label>
 
-        <!-- Floating Camera PiP Mode -->
         <button onclick="enableFloatingCamPiP()" 
           class="bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/40 text-emerald-200 text-[11px] font-semibold px-2.5 py-1 rounded-xl whitespace-nowrap active:scale-95 transition">
           🖼️ Float Wifey Cam
@@ -265,10 +254,8 @@
     </div>
   </div>
 
-  <!-- 3. MAIN THEATER STAGE + FLOATING POPUP CHAT OVERLAY -->
+  <!-- MAIN STAGE -->
   <div class="my-2 space-y-1.5">
-    
-    <!-- Instant YouTube Engine Switcher Bar -->
     <div id="ytEngineBar" class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-[11px]">
       <div class="flex items-center gap-1.5">
         <span id="modeIndicator" class="font-semibold text-pink-300">🎬 Ok Jaanu (Full Movie)</span>
@@ -287,27 +274,22 @@
       </div>
     </div>
 
-    <!-- Video Stage Box -->
     <main class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-pink-500/30 flex items-center justify-center">
       
-      <!-- ROMANTIC POPUP CHAT BUBBLES OVERLAY (Appears for 6 seconds on both screens!) -->
+      <!-- ROMANTIC POPUP CHAT BUBBLES OVERLAY -->
       <div id="popupChatOverlay" class="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:w-80 z-40 flex flex-col gap-2 pointer-events-none"></div>
 
-      <!-- Mode A1: Clean Direct YouTube No-Cookie Embed (Zero Error 153) -->
       <iframe id="ytCleanFrame" class="w-full h-full border-0"
         src="https://www.youtube-nocookie.com/embed/JuG0p5OW3hE?playsinline=1&rel=0&modestbranding=1"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowfullscreen></iframe>
 
-      <!-- Mode A2: Interactive YT.Player API Container -->
       <div id="ytApiContainer" class="w-full h-full hidden">
         <div id="ytPlayer"></div>
       </div>
 
-      <!-- Mode B: Direct Video / Local Phone Video File / Live WebRTC Screen Cast Player -->
       <video id="directVideoPlayer" class="w-full h-full hidden" controls playsinline></video>
 
-      <!-- Mobile Autoplay & Incoming Live Stream Unmute Overlay -->
       <div id="streamUnmuteOverlay" class="hidden absolute inset-0 z-30 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
         <span class="text-4xl mb-2 animate-bounce">🍿📡</span>
         <h3 class="text-sm sm:text-base font-bold text-pink-300 mb-1">Live Screen / Video Stream Active!</h3>
@@ -317,7 +299,6 @@
         </button>
       </div>
 
-      <!-- Mode C: Universal Weblink / Website Browser Iframe -->
       <div id="webFrameContainer" class="w-full h-full hidden flex flex-col bg-zinc-950">
         <div class="bg-zinc-900/95 border-b border-white/10 px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
           <div class="flex items-center gap-1.5 truncate">
@@ -343,9 +324,8 @@
     </main>
   </div>
 
-  <!-- 4. LIVE COUPLE POPUP CHAT BOX & QUICK CARING NOTES -->
+  <!-- CHAT & QUICK NOTES -->
   <div class="glass rounded-2xl p-2.5 mb-2 space-y-2 shadow-lg border border-pink-500/30">
-    <!-- Chat Input Row -->
     <div class="flex items-center gap-1.5">
       <span class="text-base pl-1">💬</span>
       <input id="quickChatInput" type="text" 
@@ -362,7 +342,6 @@
       </button>
     </div>
 
-    <!-- 1-Tap Quick Caring Messages + Reactions + Audio Sliders -->
     <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
       <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
         <button onclick="sendInstantChat('Kaisi tabiyat hai meri Jaanu ki? 💕')" class="bg-pink-500/15 hover:bg-pink-500/30 border border-pink-400/30 text-pink-200 text-[10px] px-2 py-1 rounded-lg whitespace-nowrap active:scale-95 transition">
@@ -382,7 +361,6 @@
         <button onclick="sendReaction('😘', 'Forehead Kiss! 😘')" class="bg-white/10 hover:bg-white/20 text-xs px-2 py-0.5 rounded-lg">😘</button>
       </div>
 
-      <!-- Volume Sliders -->
       <div class="flex items-center gap-2.5 text-[10px] text-gray-300 ml-auto">
         <label class="flex items-center gap-1">
           <span>🎬</span>
@@ -396,16 +374,14 @@
     </div>
   </div>
 
-  <!-- 5. DUAL LIVE CAMERA BAR (Works Across PC <-> Android!) -->
+  <!-- DUAL CAMERAS -->
   <section class="grid grid-cols-2 gap-2.5 sm:gap-4 h-36 sm:h-48">
-    <!-- Partner's Live Camera -->
     <div class="relative glass rounded-2xl overflow-hidden border border-pink-500/40 shadow-lg flex items-center justify-center bg-black/50">
       <video id="remoteCam" class="w-full h-full" autoplay playsinline></video>
       <div id="remotePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-center p-2 pointer-events-none">
         <span class="text-2xl mb-1">👩‍❤️‍👨</span>
         <span id="remoteWaitText" class="text-[11px] text-pink-200/70">Waiting for Partner's camera (PC / Android)...</span>
       </div>
-      <!-- Partner Popup Bubble Mini-Banner -->
       <div id="partnerCamPopup" class="hidden absolute top-2 left-2 right-16 bg-pink-600/90 backdrop-blur-md text-white text-[11px] font-medium px-2.5 py-1 rounded-xl shadow-lg truncate border border-pink-300/40"></div>
 
       <span id="partnerLabelBadge" class="absolute bottom-2 left-2 bg-black/75 backdrop-blur-md text-pink-300 text-[11px] font-medium px-2.5 py-0.5 rounded-lg border border-pink-500/30">
@@ -416,7 +392,6 @@
       </button>
     </div>
 
-    <!-- Your Own Live Camera -->
     <div class="relative glass rounded-2xl overflow-hidden border border-purple-500/40 shadow-lg bg-black/50">
       <video id="localCam" class="w-full h-full transform scale-x-[-1]" autoplay muted playsinline></video>
       <span id="myLabelBadge" class="absolute bottom-2 left-2 bg-black/75 backdrop-blur-md text-purple-300 text-[11px] font-medium px-2.5 py-0.5 rounded-lg border border-purple-500/30">
@@ -435,14 +410,12 @@
   </section>
 
   <script>
-    // --- DEVICE DETECTION (PC 💻 vs Android 📱) ---
     const isAndroid = /Android/i.test(navigator.userAgent);
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const myDeviceName = isAndroid ? '📱 Android' : (isMobile ? '📱 Mobile' : '💻 PC');
     document.getElementById('myDeviceBadge').innerText = myDeviceName;
     document.getElementById('myLabelBadge').innerText = `Me (${myDeviceName})`;
 
-    // --- STATE VARIABLES ---
     let peer = null;
     let dataConn = null;
     let localCamStream = null;
@@ -459,7 +432,6 @@
     let sandboxEnabled = false;
     let unreadCount = 0;
 
-    // Cross-Platform WebRTC ICE Servers (STUN + OpenRelay Public TURN for PC <-> Android Mobile Data)
     const PEER_CONFIG = {
       config: {
         iceServers: [
@@ -467,21 +439,9 @@
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun.cloudflare.com:3478' },
-          {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          }
+          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+          { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
         ],
         iceCandidatePoolSize: 10
       }
@@ -497,7 +457,6 @@
     const modeIndicator = document.getElementById('modeIndicator');
     const streamUnmuteOverlay = document.getElementById('streamUnmuteOverlay');
 
-    // --- TOAST & AUDIO CHIME HELPERS ---
     function showToast(message, icon = '💕') {
       const box = document.getElementById('toastBox');
       document.getElementById('toastText').innerText = message;
@@ -507,15 +466,14 @@
       window.toastTimer = setTimeout(() => box.classList.add('hidden'), 4200);
     }
 
-    // Soft WebAudio chime when a romantic popup chat arrives
     function playChatChime() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18);
         gain.gain.setValueAtTime(0.08, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
         osc.connect(gain);
@@ -525,8 +483,6 @@
       } catch (e) {}
     }
 
-    // --- 1. INITIALIZE CAMERA WITH PC FALLBACK STREAM ---
-    // Ensures PC without a webcam still produces a valid MediaStream so PC <-> Android call NEVER fails!
     function createFallbackAvatarStream() {
       const canvas = document.createElement('canvas');
       canvas.width = 640;
@@ -565,7 +521,6 @@
         });
       } catch (err1) {
         try {
-          // Try audio-only + canvas video if PC has no webcam
           const audioOnly = await navigator.mediaDevices.getUserMedia({ audio: true });
           localCamStream = createFallbackAvatarStream();
           localCamStream.getAudioTracks().forEach(t => localCamStream.removeTrack(t));
@@ -579,7 +534,6 @@
     }
     initCamera();
 
-    // --- 2. LIVE POPUP CHAT SYSTEM (6-Second Glowing Popup + History Drawer) ---
     function sendChatMessage(inputId = 'quickChatInput') {
       const inputEl = document.getElementById(inputId);
       const text = inputEl.value.trim();
@@ -596,11 +550,9 @@
       const senderName = isHostRole ? `Asad (${myDeviceName})` : `Wifey 💕 (${myDeviceName})`;
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Show locally
       displayPopupMessageBubble(senderName, text, true);
       appendChatHistory(senderName, text, timeStr, true);
 
-      // Send to partner
       sendSyncData({
         type: 'CHAT_MESSAGE',
         sender: senderName,
@@ -635,7 +587,6 @@
 
       overlay.appendChild(bubble);
 
-      // Also show a mini badge on partner's camera box if received from partner
       if (!isMe) {
         const camPopup = document.getElementById('partnerCamPopup');
         camPopup.innerText = `💬 ${text}`;
@@ -644,7 +595,6 @@
         window.camPopupTimer = setTimeout(() => camPopup.classList.add('hidden'), 6000);
       }
 
-      // Auto fade out and remove after 6 seconds
       setTimeout(() => {
         bubble.style.opacity = '0';
         bubble.style.transform = 'translateY(-10px) scale(0.95)';
@@ -693,7 +643,6 @@
       return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
-    // --- 3. YOUTUBE 3-ENGINE SYSTEM (ZERO ERROR 153) ---
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('ytPlayer', {
         width: '100%',
@@ -711,12 +660,24 @@
     function onYtStateChange(event) {
       if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !dataConn || !dataConn.open) return;
       const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
+      
       if (event.data === YT.PlayerState.PLAYING) {
-        sendSyncData({ type: 'YT_STATE', action: 'PLAY', time });
+        sendSyncData({ type: 'YT_STATE', action: 'PLAY', time: time });
       } else if (event.data === YT.PlayerState.PAUSED) {
-        sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time });
+        sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time: time });
       }
     }
+
+    setInterval(() => {
+      if (currentMode === 'YT' && currentYtEngine === 2 && ytApiReady && ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+        if (!window.lastSentTime) window.lastSentTime = 0;
+        const currentTime = ytPlayer.getCurrentTime();
+        if (Math.abs(currentTime - window.lastSentTime) > 2.2 && !isSyncing) {
+          window.lastSentTime = currentTime;
+          sendSyncData({ type: 'YT_STATE', action: 'SEEK', time: currentTime });
+        }
+      }
+    }, 2000);
 
     function switchYtEngine(engineNum, broadcast = true) {
       currentYtEngine = engineNum;
@@ -794,7 +755,6 @@
       if (labelText) modeIndicator.innerText = labelText;
     }
 
-    // --- 4. UNIVERSAL URL & WEBLINK HANDLER ---
     function extractYouTubeId(url) {
       const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(\/shorts\/)|(\/live\/))\??v?=?([^#&?]*).*/;
       const match = url.match(regExp);
@@ -855,7 +815,6 @@
       showToast(`Playing: ${title}`, '🍿');
     }
 
-    // --- 5. LIVE SCREEN CAST (WORKS ON BOTH PC & ANDROID!) ---
     function openMobileCastModal() {
       document.getElementById('mobileCastModal').classList.remove('hidden');
     }
@@ -885,18 +844,15 @@
 
       let screenStream = null;
       try {
-        // Attempt 1: Full Screen + System Audio (PC Chrome/Edge)
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: { cursor: "always" },
           audio: true
         });
       } catch (err1) {
         try {
-          // Attempt 2: Video-only fallback (Required by Android Chrome/Firefox/Samsung Browser)
           screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: true
           });
-          // Mix in microphone audio if available so partner hears audio from Android
           if (localCamStream && localCamStream.getAudioTracks().length > 0) {
             screenStream.addTrack(localCamStream.getAudioTracks()[0]);
           }
@@ -977,7 +933,6 @@
       showToast("Live Stream Audio & Video Enabled! 💕", "🔊");
     }
 
-    // --- 6. CROSS-PLATFORM PEERJS CONNECTION (PC <-> ANDROID) ---
     function startRoom(isHost) {
       const rawCode = document.getElementById('roomInput').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
       if (!rawCode) {
@@ -1001,7 +956,6 @@
         if (isHost) {
           statusBadge.innerText = `Host Ready on ${myDeviceName}! Waiting for Partner...`;
           showToast(`Room "${rawCode}" active on ${myDeviceName}! Partner ko 'Join (Wifey 💕)' dabane ka bolein.`, "✨");
-          // Also try connecting proactively in case Guest already joined first!
           tryConnectToPartner(targetPeerId);
         } else {
           statusBadge.innerText = `Joining Room "${rawCode}" from ${myDeviceName}...`;
@@ -1012,7 +966,6 @@
       peer.on('connection', (conn) => {
         dataConn = conn;
         setupDataEvents();
-        // Call back with camera/avatar stream so both PC & Android see each other
         setTimeout(() => {
           if (localCamStream) {
             const backCall = peer.call(conn.peer, localCamStream, { metadata: { streamType: 'camera' } });
@@ -1045,7 +998,6 @@
 
       peer.on('error', (err) => {
         if (err.type === 'unavailable-id') {
-          // If ID taken, auto-switch role so connection succeeds seamlessly!
           showToast("Auto-matching role with partner...", "🔄");
           setTimeout(() => startRoom(!isHost), 600);
         } else if (err.type === 'peer-unavailable') {
@@ -1125,11 +1077,22 @@
         else if (data.type === 'YT_STATE') {
           if (currentYtEngine !== 2) switchYtEngine(2, false);
           isSyncing = true;
-          if (ytPlayer && ytPlayer.getCurrentTime && Math.abs(ytPlayer.getCurrentTime() - data.time) > 1.5) {
+          
+          if (ytPlayer && ytPlayer.getCurrentTime) {
+            const localTime = ytPlayer.getCurrentTime();
+            if (Math.abs(localTime - data.time) > 1.5) {
+              ytPlayer.seekTo(data.time, true);
+            }
+          }
+
+          if (data.action === 'PLAY' && ytPlayer && ytPlayer.playVideo) {
+            ytPlayer.playVideo();
+          } else if (data.action === 'PAUSE' && ytPlayer && ytPlayer.pauseVideo) {
+            ytPlayer.pauseVideo();
+          } else if (data.action === 'SEEK' && ytPlayer && ytPlayer.seekTo) {
             ytPlayer.seekTo(data.time, true);
           }
-          if (data.action === 'PLAY' && ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
-          if (data.action === 'PAUSE' && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+
           setTimeout(() => { isSyncing = false; }, 650);
         }
         else if (data.type === 'DIRECT_STATE') {
@@ -1166,7 +1129,6 @@
       }
     }
 
-    // --- 7. FLOATING PiP, REACTIONS & AUDIO ---
     async function enableFloatingCamPiP(silent = false) {
       const remoteVideo = document.getElementById('remoteCam');
       const localVideo = document.getElementById('localCam');
