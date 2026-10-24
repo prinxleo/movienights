@@ -96,7 +96,6 @@
         <button onclick="closeMobileCastModal()" class="text-gray-400 hover:text-white text-lg px-2">✕</button>
       </div>
 
-      <!-- Mode 1 -->
       <div class="bg-cyan-950/50 border border-cyan-400/40 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-cyan-300">Mode 1: Enable Native Android Screen Cast (10 Sec Setup)</span>
@@ -117,7 +116,6 @@
         </div>
       </div>
 
-      <!-- Mode 2 -->
       <div class="bg-indigo-950/50 border border-indigo-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-indigo-300">Mode 2: Stream Any Video File From Phone (HD + Audio)</span>
@@ -132,7 +130,6 @@
         </label>
       </div>
 
-      <!-- Mode 3 -->
       <div class="bg-emerald-950/50 border border-emerald-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-emerald-300">Mode 3: Float Wifey Cam Over MovieBox / Cast Rear Cam</span>
@@ -431,7 +428,6 @@
     let currentMediaUrl = 'https://youtu.be/JuG0p5OW3hE';
     let sandboxEnabled = false;
     let unreadCount = 0;
-    let lastSeekTime = 0;
 
     const PEER_CONFIG = {
       config: {
@@ -658,7 +654,7 @@
       });
     }
 
-    // --- 100% SMOOTH EVENT-BASED YOUTUBE SYNC (NO SETINTERVAL / NO BUFFERING) ---
+    // 100% Smooth & Lag-Free: Pure Real Events Only (No setInterval polling)
     function onYtStateChange(event) {
       if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !dataConn || !dataConn.open) return;
       const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
@@ -668,11 +664,7 @@
       } else if (event.data === YT.PlayerState.PAUSED) {
         sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time: time });
       } else if (event.data === YT.PlayerState.BUFFERING) {
-        // Detect if buffering was caused by a user seek action
-        if (Math.abs(time - lastSeekTime) > 1.5) {
-          lastSeekTime = time;
-          sendSyncData({ type: 'YT_STATE', action: 'SEEK', time: time });
-        }
+        // Optional: handle buffering smoothly if needed
       }
     }
 
@@ -1074,27 +1066,23 @@
         else if (data.type === 'YT_STATE') {
           if (currentYtEngine !== 2) switchYtEngine(2, false);
           isSyncing = true;
-          
-          if (data.action === 'PLAY') {
-            if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(data.time, true);
-            if (ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
-          } else if (data.action === 'PAUSE') {
-            if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(data.time, true);
-            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
-          } else if (data.action === 'SEEK') {
-            if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(data.time, true);
+
+          if (data.action === 'PLAY' && ytPlayer && ytPlayer.seekTo && ytPlayer.playVideo) {
+            ytPlayer.seekTo(data.time, true);
+            ytPlayer.playVideo();
+          } else if (data.action === 'PAUSE' && ytPlayer && ytPlayer.seekTo && ytPlayer.pauseVideo) {
+            ytPlayer.seekTo(data.time, true);
+            ytPlayer.pauseVideo();
           }
 
-          setTimeout(() => { isSyncing = false; }, 400);
+          setTimeout(() => { isSyncing = false; }, 600);
         }
         else if (data.type === 'DIRECT_STATE') {
           isSyncing = true;
-          if (Math.abs(directVideoPlayer.currentTime - data.time) > 1.0) {
-            directVideoPlayer.currentTime = data.time;
-          }
+          directVideoPlayer.currentTime = data.time;
           if (data.action === 'PLAY') directVideoPlayer.play();
           if (data.action === 'PAUSE') directVideoPlayer.pause();
-          setTimeout(() => { isSyncing = false; }, 400);
+          setTimeout(() => { isSyncing = false; }, 600);
         }
         else if (data.type === 'REACTION') {
           spawnFloatingEmoji(data.emoji);
