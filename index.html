@@ -651,33 +651,35 @@
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
         events: {
           onReady: () => { ytApiReady = true; },
-          onStateChange: onYtStateChange,
           onError: () => { switchYtEngine(1, false); }
         }
       });
     }
 
-    function onYtStateChange(event) {
-      if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !dataConn || !dataConn.open) return;
-      const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
-      
-      if (event.data === YT.PlayerState.PLAYING) {
-        sendSyncData({ type: 'YT_STATE', action: 'PLAY', time: time });
-      } else if (event.data === YT.PlayerState.PAUSED) {
-        sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time: time });
-      }
-    }
-
+    // Bulletproof interval sync checker (Works perfectly on Android WebView & PC)
     setInterval(() => {
-      if (currentMode === 'YT' && currentYtEngine === 2 && ytApiReady && ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-        if (!window.lastSentTime) window.lastSentTime = 0;
-        const currentTime = ytPlayer.getCurrentTime();
-        if (Math.abs(currentTime - window.lastSentTime) > 2.2 && !isSyncing) {
-          window.lastSentTime = currentTime;
-          sendSyncData({ type: 'YT_STATE', action: 'SEEK', time: currentTime });
-        }
+      if (currentMode === 'YT' && currentYtEngine === 2 && ytApiReady && ytPlayer && ytPlayer.getPlayerState) {
+        try {
+          const state = ytPlayer.getPlayerState();
+          const currentTime = ytPlayer.getCurrentTime();
+
+          if (state === YT.PlayerState.PLAYING) {
+            if (!window.isRemoteSeeking && (!window.lastSentTime || Math.abs(currentTime - window.lastSentTime) > 1.8)) {
+              window.lastSentTime = currentTime;
+              sendSyncData({ type: 'YT_ACTION', action: 'PLAY', time: currentTime });
+            }
+          } else if (state === YT.PlayerState.PAUSED) {
+            if (!window.isRemoteSeeking && window.lastPlayState !== 'PAUSED') {
+              window.lastPlayState = 'PAUSED';
+              sendSyncData({ type: 'YT_ACTION', action: 'PAUSE', time: currentTime });
+            }
+          }
+          if (state === YT.PlayerState.PLAYING) {
+            window.lastPlayState = 'PLAYING';
+          }
+        } catch (e) {}
       }
-    }, 2000);
+    }, 1000);
 
     function switchYtEngine(engineNum, broadcast = true) {
       currentYtEngine = engineNum;
@@ -1074,13 +1076,14 @@
           switchStageMode('LIVE_STREAM', data.title || '📡 Incoming Stream');
           streamUnmuteOverlay.classList.remove('hidden');
         }
-        else if (data.type === 'YT_STATE') {
+        else if (data.type === 'YT_ACTION') {
           if (currentYtEngine !== 2) switchYtEngine(2, false);
           isSyncing = true;
-          
-          if (ytPlayer && ytPlayer.getCurrentTime) {
+          window.isRemoteSeeking = true;
+
+          if (ytPlayer && ytPlayer.seekTo && ytPlayer.getCurrentTime) {
             const localTime = ytPlayer.getCurrentTime();
-            if (Math.abs(localTime - data.time) > 1.5) {
+            if (Math.abs(localTime - data.time) > 1.2) {
               ytPlayer.seekTo(data.time, true);
             }
           }
@@ -1089,11 +1092,12 @@
             ytPlayer.playVideo();
           } else if (data.action === 'PAUSE' && ytPlayer && ytPlayer.pauseVideo) {
             ytPlayer.pauseVideo();
-          } else if (data.action === 'SEEK' && ytPlayer && ytPlayer.seekTo) {
-            ytPlayer.seekTo(data.time, true);
           }
 
-          setTimeout(() => { isSyncing = false; }, 650);
+          setTimeout(() => { 
+            isSyncing = false; 
+            window.isRemoteSeeking = false;
+          }, 800);
         }
         else if (data.type === 'DIRECT_STATE') {
           isSyncing = true;
@@ -1118,7 +1122,7 @@
       }
       if (currentMode === 'YT') {
         if (currentYtEngine === 2 && ytPlayer && ytPlayer.getCurrentTime) {
-          sendSyncData({ type: 'YT_STATE', action: 'PLAY', time: ytPlayer.getCurrentTime() });
+          sendSyncData({ type: 'YT_ACTION', action: 'PLAY', time: ytPlayer.getCurrentTime() });
         } else {
           sendSyncData({ type: 'OPEN_UNIVERSAL', url: currentVideoId, forceType: 'yt', title: modeIndicator.innerText });
         }
