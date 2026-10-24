@@ -96,6 +96,7 @@
         <button onclick="closeMobileCastModal()" class="text-gray-400 hover:text-white text-lg px-2">✕</button>
       </div>
 
+      <!-- Mode 1 -->
       <div class="bg-cyan-950/50 border border-cyan-400/40 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-cyan-300">Mode 1: Enable Native Android Screen Cast (10 Sec Setup)</span>
@@ -116,6 +117,7 @@
         </div>
       </div>
 
+      <!-- Mode 2 -->
       <div class="bg-indigo-950/50 border border-indigo-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-indigo-300">Mode 2: Stream Any Video File From Phone (HD + Audio)</span>
@@ -130,6 +132,7 @@
         </label>
       </div>
 
+      <!-- Mode 3 -->
       <div class="bg-emerald-950/50 border border-emerald-400/30 rounded-2xl p-3 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-emerald-300">Mode 3: Float Wifey Cam Over MovieBox / Cast Rear Cam</span>
@@ -649,23 +652,38 @@
         events: {
           onReady: () => { ytApiReady = true; },
           onStateChange: onYtStateChange,
-          onError: () => { switchYtEngine(1, false); }
+          
+          onPlaybackRateChange: onYouTubePlaybackRateChange,onError: () => { switchYtEngine(1, false); }
         }
       });
     }
 
-    // 100% Smooth & Lag-Free: Pure Real Events Only (No setInterval polling)
     function onYtStateChange(event) {
       if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !dataConn || !dataConn.open) return;
-      const time = ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0;
-      
       if (event.data === YT.PlayerState.PLAYING) {
-        sendSyncData({ type: 'YT_STATE', action: 'PLAY', time: time });
+        broadcastYouTubeState('PLAY');
       } else if (event.data === YT.PlayerState.PAUSED) {
-        sendSyncData({ type: 'YT_STATE', action: 'PAUSE', time: time });
-      } else if (event.data === YT.PlayerState.BUFFERING) {
-        // Optional: handle buffering smoothly if needed
+        broadcastYouTubeState('PAUSE');
       }
+    }
+    // Event-driven YouTube sync; no periodic playback polling.
+    // The YouTube IFrame API has no dedicated seeked event for its own timeline controls.
+    function onYouTubePlaybackRateChange(event) {
+      if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2) return;
+      sendSyncData({
+        type: 'YT_STATE', action: 'RATE',
+        time: ytPlayer && ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0,
+        rate: event.data
+      });
+    }
+
+    function broadcastYouTubeState(action) {
+      if (isSyncing || currentMode !== 'YT' || currentYtEngine !== 2 || !ytPlayer) return;
+      sendSyncData({
+        type: 'YT_STATE', action,
+        time: ytPlayer.getCurrentTime ? ytPlayer.getCurrentTime() : 0,
+        rate: ytPlayer.getPlaybackRate ? ytPlayer.getPlaybackRate() : 1
+      });
     }
 
     function switchYtEngine(engineNum, broadcast = true) {
@@ -1066,23 +1084,34 @@
         else if (data.type === 'YT_STATE') {
           if (currentYtEngine !== 2) switchYtEngine(2, false);
           isSyncing = true;
-
-          if (data.action === 'PLAY' && ytPlayer && ytPlayer.seekTo && ytPlayer.playVideo) {
+          
+          if (ytPlayer && ytPlayer.getCurrentTime && Number.isFinite(data.time) &&
+              (data.action === 'SEEK' || Math.abs(ytPlayer.getCurrentTime() - data.time) > 2.0)) {
             ytPlayer.seekTo(data.time, true);
-            ytPlayer.playVideo();
-          } else if (data.action === 'PAUSE' && ytPlayer && ytPlayer.seekTo && ytPlayer.pauseVideo) {
-            ytPlayer.seekTo(data.time, true);
-            ytPlayer.pauseVideo();
           }
 
-          setTimeout(() => { isSyncing = false; }, 600);
+          if (data.action === 'PLAY' && ytPlayer && ytPlayer.playVideo) {
+            ytPlayer.playVideo();
+          } else if (data.action === 'PAUSE' && ytPlayer && ytPlayer.pauseVideo) {
+            ytPlayer.pauseVideo();
+          } else if (data.action === 'SEEK' && ytPlayer && ytPlayer.seekTo) {
+            ytPlayer.seekTo(data.time, true);
+          } else if (data.action === 'RATE' && ytPlayer && ytPlayer.setPlaybackRate) {
+            ytPlayer.setPlaybackRate(data.rate || 1);
+          }
+
+          queueMicrotask(() => { isSyncing = false; });
         }
         else if (data.type === 'DIRECT_STATE') {
           isSyncing = true;
-          directVideoPlayer.currentTime = data.time;
-          if (data.action === 'PLAY') directVideoPlayer.play();
+          if (Number.isFinite(data.time) &&
+              (data.action === 'SEEK' || Math.abs(directVideoPlayer.currentTime - data.time) > 2.0)) {
+            directVideoPlayer.currentTime = data.time;
+          }
+          if (data.action === 'PLAY') directVideoPlayer.play().catch(() => {});
           if (data.action === 'PAUSE') directVideoPlayer.pause();
-          setTimeout(() => { isSyncing = false; }, 600);
+          if (data.action === 'RATE' && Number.isFinite(data.rate)) directVideoPlayer.playbackRate = data.rate;
+          queueMicrotask(() => { isSyncing = false; });
         }
         else if (data.type === 'REACTION') {
           spawnFloatingEmoji(data.emoji);
@@ -1162,6 +1191,28 @@
       }
       sharedWebFrame.src = sharedWebFrame.src;
     }
+
+    // Native video events keep direct-file playback synced without polling.
+    directVideoPlayer.addEventListener('play', () => {
+      if (!isSyncing && currentMode === 'DIRECT_URL') {
+        sendSyncData({ type: 'DIRECT_STATE', action: 'PLAY', time: directVideoPlayer.currentTime, rate: directVideoPlayer.playbackRate });
+      }
+    });
+    directVideoPlayer.addEventListener('pause', () => {
+      if (!isSyncing && currentMode === 'DIRECT_URL' && !directVideoPlayer.ended) {
+        sendSyncData({ type: 'DIRECT_STATE', action: 'PAUSE', time: directVideoPlayer.currentTime, rate: directVideoPlayer.playbackRate });
+      }
+    });
+    directVideoPlayer.addEventListener('seeked', () => {
+      if (!isSyncing && currentMode === 'DIRECT_URL') {
+        sendSyncData({ type: 'DIRECT_STATE', action: 'SEEK', time: directVideoPlayer.currentTime, rate: directVideoPlayer.playbackRate });
+      }
+    });
+    directVideoPlayer.addEventListener('ratechange', () => {
+      if (!isSyncing && currentMode === 'DIRECT_URL') {
+        sendSyncData({ type: 'DIRECT_STATE', action: 'RATE', time: directVideoPlayer.currentTime, rate: directVideoPlayer.playbackRate });
+      }
+    });
 
     function loadDirectVideoStream(url, broadcast = true) {
       switchStageMode('DIRECT_URL', '🎞️ Direct Stream Sync');
